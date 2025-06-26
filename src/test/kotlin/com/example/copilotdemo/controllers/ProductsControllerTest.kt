@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPat
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.web.client.RestTemplate
 
+@Suppress("SpringJavaInjectionPointsAutowiringInspection")
 @SpringBootTest
 @AutoConfigureMockMvc
 class ProductsControllerTest {
@@ -56,6 +57,18 @@ class ProductsControllerTest {
             .andReturn()
     }
 
+    // write a test case to handle empty response from the service
+    @Test
+    fun `should return empty products when service returns no products`() {
+        val dummyResponse = ProductsService.DummyJsonResponse(products = emptyList(), total = 0)
+        Mockito.`when`(
+            restTemplate.getForObject(Mockito.anyString(), Mockito.eq(ProductsService.DummyJsonResponse::class.java))
+        ).thenReturn(dummyResponse)
 
+        mockMvc.perform(get("/api/v1/products?start=0&size=10").accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.products").isEmpty)
+            .andExpect(jsonPath("$.total").value(0))
+    }
 }
 
