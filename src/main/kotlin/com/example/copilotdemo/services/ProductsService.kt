@@ -30,6 +30,14 @@ class ProductsService {
         val total: Int
     )
 
+
+    /**
+     * Retrieves a paginated list of products and the total count from the external DummyJSON API.
+     *
+     * @param start The starting index (number of products to skip).
+     * @param size The number of products to retrieve.
+     * @return [ProductsResult] containing the list of products and the total count.
+     */
     fun getProductsAndTotal(start: Int, size: Int): ProductsResult {
         if (start < 0 || size < 1) return ProductsResult(emptyList(), 0)
         val url = UriComponentsBuilder.fromUriString(baseUrl)
@@ -37,6 +45,7 @@ class ProductsService {
             .queryParam("limit", size)
             .toUriString()
         val response = restTemplate.getForObject(url, DummyJsonResponse::class.java)
+
         val products = response?.products?.map {
             Product(
                 id = it.id.toLong(),
@@ -50,4 +59,48 @@ class ProductsService {
         val total = response?.total ?: 0
         return ProductsResult(products, total)
     }
+
+    /**
+     * Fetches all products from the external API in batches of 20.
+     * @return ProductsResult containing all products and the total count.
+     */
+    fun getAllProductsInBatches(): ProductsResult {
+        val batchSize = 20
+        val firstBatch = getProductsAndTotal(0, batchSize)
+        val total = firstBatch.total
+        val allProducts = mutableListOf<Product>()
+        allProducts.addAll(firstBatch.products)
+        var fetched = firstBatch.products.size
+        while (fetched < total) {
+            val batch = getProductsAndTotal(fetched, batchSize)
+            allProducts.addAll(batch.products)
+            fetched += batch.products.size
+            if (batch.products.isEmpty()) break // safety check
+        }
+        return ProductsResult(allProducts, total)
+    }
+
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
